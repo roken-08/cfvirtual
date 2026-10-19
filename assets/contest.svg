@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" viewBox="0 0 960 440" role="img" aria-labelledby="title description">
+  <title id="title">CFVirtual contest screen illustration</title>
+  <desc id="description">Illustrative terminal layout, not a captured application screenshot. Invented problem labels and sample scores show your_handle and three clearly marked fictional bots.</desc>
+  <rect width="960" height="440" rx="12" fill="#101820"/>
+  <g font-family="monospace" font-size="16" fill="#e8edf2">
+    <text x="24" y="32" fill="#8fcde8">CFVirtual · illustrative contest screen</text>
+    <text x="24" y="61">SOLO   00:42 remaining   2/6 solved   penalty 78 s</text>
+    <path d="M24 78H936 M24 113H936 M24 279H936 M544 279V389 M24 394H936" stroke="#607889" fill="none"/>
+    <text x="24" y="102" fill="#8fcde8">#  Problem                  Rating   Status       Time   Tries</text>
+    <text x="24" y="140">A  Sample arithmetic         800     AC           18 s    1</text>
+    <text x="24" y="165">B  Sample ordering           900     AC           60 s    1</text>
+    <text x="24" y="190">C  Sample paths             1000     WA             --    2</text>
+    <text x="24" y="215">D  Sample intervals         1100     unsolved       --    0</text>
+    <text x="24" y="240">E  Sample choices           1200     unsolved       --    0</text>
+    <text x="24" y="265">F  Sample graph             1400     unsolved       --    0</text>
+    <text x="24" y="304" fill="#8fcde8">Standings           Solved  Penalty (s)</text>
+    <text x="24" y="329">1  your_handle        2       78</text>
+    <text x="24" y="354">2  BOT 01 [BOT]       1       25</text>
+    <text x="24" y="379">3  BOT 02 [BOT]       0        0</text>
+    <text x="564" y="304" fill="#8fcde8">Selected: C · Sample paths</text>
+    <text x="564" y="329">[o] open   [y] copy URL</text>
+    <text x="564" y="354">[?] help   [q] back</text>
+    <text x="564" y="379">BOT 03 [BOT]: 0 solves</text>
+    <text x="24" y="422" fill="#b9c6cf">ILLUSTRATION ONLY · invented labels and sample data · not a captured run</text>
+  </g>
+</svg>

@@ -594,6 +594,19 @@ mod tests {
     }
 
     #[test]
+    fn blind_results_reveal_metadata_automatically() {
+        let mut app = app("default", false);
+        app.contest.as_mut().expect("contest").blind = true;
+        app.complete = true;
+        app.screen = Screen::Results;
+        app.pane = Pane::Details;
+        let text = rendered(&app, 80, 24);
+        assert!(!text.contains("Rating / tags: hidden"));
+        assert!(text.contains("Tags: math"));
+        assert!(text.contains("should have solved"));
+    }
+
+    #[test]
     fn pause_and_help_do_not_change_clock_or_allow_blind_reveal() {
         use crossterm::event::{KeyCode, KeyEvent};
         let mut app = app("default", true);

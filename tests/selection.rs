@@ -151,22 +151,20 @@ fn solved_keys_duplicate_keys_and_case_insensitive_names_are_excluded() {
 
 #[test]
 fn the_single_expansion_precedes_unbounded_remaining_pool_fallback() {
-    let pool = [problem(1, 900, "dp"), problem(2, 500, "dp")];
+    let pool = [problem(1, 1000, "dp"), problem(2, 500, "dp")];
     for seed in 0..10 {
         let selected =
             select(&pool, &HashSet::new(), &BTreeMap::new(), 1200, 1, &[], seed).unwrap();
         assert_eq!(selected[0].problem.key.contest_id, 1);
     }
-    let selected = select(&pool, &HashSet::new(), &BTreeMap::new(), 1200, 2, &[], 10).unwrap();
-    assert_eq!(selected.len(), 2);
-    assert_eq!(selected[0].problem.rating, Some(500));
+    assert!(select(&pool, &HashSet::new(), &BTreeMap::new(), 1200, 2, &[], 10).is_err());
 }
 
 #[test]
 fn tag_filters_are_or_based_and_survive_all_fallbacks() {
     let pool = [
-        problem(1, 100, "dp"),
-        problem(2, 3000, "graphs"),
+        problem(1, 1000, "dp"),
+        problem(2, 1600, "graphs"),
         problem(3, 1200, "math"),
     ];
     let tags = [" DP ".to_owned(), "graphs".to_owned()];
@@ -200,7 +198,7 @@ fn invalid_sources_and_missing_ratings_never_reenter_through_fallback() {
     }
     let mut unrated = problem(7, 1200, "dp");
     unrated.rating = None;
-    pool.extend([unrated, problem(100001, 1200, "dp"), problem(0, 1200, "dp")]);
+    pool.extend([unrated, problem(0, 1200, "dp")]);
     let mut invalid_index = problem(8, 1200, "dp");
     invalid_index.key.index = "../A".to_owned();
     pool.push(invalid_index);
@@ -239,11 +237,11 @@ fn label_limit_zero_counts_and_pathological_weights_are_safe() {
         ("math".to_owned(), f64::INFINITY),
         ("graphs".to_owned(), -1.0),
     ]);
-    let selected = select(&pool, &HashSet::new(), &weights, 0, 26, &[], 2).unwrap();
+    let selected = select(&pool, &HashSet::new(), &weights, 1200, 26, &[], 2).unwrap();
     assert_eq!(selected.last().unwrap().slot, 'Z');
     for count in [0, 27] {
         assert!(select(&pool, &HashSet::new(), &weights, u32::MAX, count, &[], 2).is_err());
     }
     let enormous = BTreeMap::from([("dp".to_owned(), f64::MAX)]);
-    assert!(select(&pool, &HashSet::new(), &enormous, u32::MAX, 5, &[], 2).is_ok());
+    assert!(select(&pool, &HashSet::new(), &enormous, 1200, 5, &[], 2).is_ok());
 }

@@ -1,0 +1,47 @@
+# Source-package template; no upstream or AUR publication is assumed.
+# Set these environment variables or replace the placeholders before use:
+# CFVIRTUAL_REPOSITORY_URL, CFVIRTUAL_SOURCE_URL, CFVIRTUAL_SOURCE_SHA256.
+# The versioned archive must extract to cfvirtual-${pkgver}/.
+pkgname=cfvirtual
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Read-only Codeforces virtual contests in your terminal'
+arch=('x86_64' 'aarch64')
+url="${CFVIRTUAL_REPOSITORY_URL:-<repository-url>}"
+license=('MIT')
+depends=('gcc-libs' 'glibc')
+makedepends=('cargo>=1.99.1')
+optdepends=('xdg-utils: open problem links in the default browser')
+_source_url="${CFVIRTUAL_SOURCE_URL:-<source-archive-url>}"
+source=("${pkgname}-${pkgver}.tar.gz::${_source_url}")
+sha256sums=("${CFVIRTUAL_SOURCE_SHA256:-<source-archive-sha256>}")
+
+prepare() {
+    cd "$srcdir/$pkgname-$pkgver"
+    cargo fetch --locked
+}
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver"
+    CARGO_TARGET_DIR="$srcdir/target" cargo build --release --frozen
+}
+
+check() {
+    cd "$srcdir/$pkgname-$pkgver"
+    # Fixtures/local mock servers only; no live Codeforces API is needed.
+    CARGO_TARGET_DIR="$srcdir/target" cargo test --frozen
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 "$srcdir/target/release/cfvirtual" "$pkgdir/usr/bin/cfvirtual"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    local doc
+    for doc in README.md LICENSE CHANGELOG.md DECISIONS.md SPEC.md; do
+        install -Dm644 "$doc" "$pkgdir/usr/share/doc/$pkgname/$doc"
+    done
+    for doc in SELF_HOSTING.md DEMO.md PROTOCOL.md; do
+        install -Dm644 "docs/$doc" "$pkgdir/usr/share/doc/$pkgname/docs/$doc"
+    done
+    install -Dm644 assets/contest.svg "$pkgdir/usr/share/doc/$pkgname/assets/contest.svg"
+}

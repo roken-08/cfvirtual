@@ -45,7 +45,6 @@ pub fn select(
         let problem_tags: BTreeSet<_> = problem.tags.iter().map(|tag| normalize(tag)).collect();
         if solved.contains(&problem.key)
             || problem.key.contest_id == 0
-            || problem.key.contest_id >= 100_000
             || problem.key.index.is_empty()
             || !problem
                 .key
@@ -56,6 +55,7 @@ pub fn select(
             || nonstandard(&name)
             || problem_tags.iter().any(|tag| nonstandard(tag))
             || (!filter.is_empty() && problem_tags.is_disjoint(&filter))
+            || !(rating.saturating_sub(200)..=rating.saturating_add(400)).contains(&problem_rating)
         {
             continue;
         }

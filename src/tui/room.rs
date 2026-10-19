@@ -221,6 +221,9 @@ fn snapshot(app: &mut App, state: Snapshot, jobs: &mut io::Jobs, db_path: &std::
             .saturating_sub(Utc::now().timestamp_millis());
     }
     let phase = state.phase;
+    let spectator = state.participants.iter().any(|participant| {
+        participant.handle.eq_ignore_ascii_case(&app.handle) && participant.is_spectator
+    });
     let (contest, standings) = record(&state, &app.handle);
     app.contest = Some(contest);
     app.standings = standings;
@@ -230,7 +233,10 @@ fn snapshot(app: &mut App, state: Snapshot, jobs: &mut io::Jobs, db_path: &std::
         if app.base_screen() != Screen::Results {
             app.set_screen(Screen::Contest);
         }
-        if !app.saved && !app.saving {
+        if spectator {
+            app.saved = true;
+            app.status = "Spectator view ended; no participant result was saved.".into();
+        } else if !app.saved && !app.saving {
             io::save(jobs, app, db_path.to_path_buf());
         }
     } else {

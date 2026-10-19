@@ -425,7 +425,7 @@ Solo must work offline if the problemset is cached and `--handle` history is una
 5. Host starts. Server selects problems from the host profile, broadcasts `contest_started`, and starts polling.
 6. Server polls every 20s per human handle, respecting the 2s global API limit, and processes only in-window submissions on contest problems.
 7. Late joiners are rejected once running; spectators may join anytime.
-8. Reconnect: client stores `{room, participant_token}` for the session and replays `hello`; the server replies with a full snapshot.
+8. Reconnect: client stores `{room, participant_token}` for the session and sends the token-based `reconnect` message; the server replies with a full snapshot.
 9. On end, server broadcasts final standings; host can export; every participant can see their own summary.
 
 ### Networking details

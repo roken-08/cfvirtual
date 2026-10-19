@@ -1,0 +1,143 @@
+name: Release
+
+# Push to the real GitHub repository and tag v<Cargo.toml version> to publish.
+# This workflow does not imply that any release assets already exist.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+      CC_x86_64_unknown_linux_musl: musl-gcc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify release version and toolchain
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import tomllib
+          version = tomllib.loads(Path('Cargo.toml').read_text())['package']['version']
+          channel = tomllib.loads(Path('rust-toolchain.toml').read_text())['toolchain']['channel']
+          if os.environ['RELEASE_TAG'] != f'v{version}':
+              raise SystemExit(f'Release tag must match Cargo.toml: v{version}')
+          if channel != '1.99.1':
+              raise SystemExit('Update workflow pins to match rust-toolchain.toml')
+          PY
+      - name: Linux C toolchain (bundled SQLite)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config
+      - name: musl C toolchain
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get install -y --no-install-recommends musl-tools
+      - name: Install pinned Rust and target
+        run: rustup toolchain install 1.99.1 --profile minimal --target "$TARGET"
+      - name: Build release binary
+        run: cargo build --locked --release --target "$TARGET"
+      - name: Archive binary, docs, and license with SHA-256 sidecar
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          target, tag = os.environ['TARGET'], os.environ['RELEASE_TAG']
+          stem = f'cfvirtual-{tag}-{target}'
+          windows = target.endswith('-windows-msvc')
+          binary = 'cfvirtual.exe' if windows else 'cfvirtual'
+          files = [(Path('target') / target / 'release' / binary, binary)]
+          docs = ('README.md', 'LICENSE', 'CHANGELOG.md', 'DECISIONS.md', 'SPEC.md',
+                  'docs/SELF_HOSTING.md', 'docs/DEMO.md', 'docs/PROTOCOL.md',
+                   'assets/contest.svg', 'packaging/PKGBUILD')
+          files += [(Path(name), name) for name in docs]
+          dist = Path('dist')
+          dist.mkdir(exist_ok=True)
+          archive = dist / (stem + ('.zip' if windows else '.tar.gz'))
+          if windows:
+              with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
+                  for source, name in files:
+                      output.write(source, f'{stem}/{name}')
+          else:
+              with tarfile.open(archive, 'w:gz') as output:
+                  for source, name in files:
+                      output.add(source, arcname=f'{stem}/{name}')
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          Path(str(archive) + '.sha256').write_text(
+              f'{digest}  {archive.name}\n', encoding='utf-8')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfvirtual-${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish archives and checksums
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Upload explicit asset paths and publish
+        working-directory: dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          targets=(x86_64-unknown-linux-gnu x86_64-unknown-linux-musl x86_64-apple-darwin aarch64-apple-darwin x86_64-pc-windows-msvc)
+          assets=()
+          for target in "${targets[@]}"; do
+            extension=tar.gz
+            if [[ "$target" == x86_64-pc-windows-msvc ]]; then extension=zip; fi
+            archive="cfvirtual-${RELEASE_TAG}-${target}.${extension}"
+            test -f "$archive"
+            sha256sum --check "$archive.sha256"
+            assets+=("$archive" "$archive.sha256")
+          done
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

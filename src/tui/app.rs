@@ -141,7 +141,9 @@ impl App {
     }
 
     pub fn hidden(&self) -> bool {
-        self.contest.as_ref().is_some_and(|c| c.blind) && !self.reveal
+        self.contest
+            .as_ref()
+            .is_some_and(|c| c.blind && !self.complete && !self.reveal)
     }
 
     pub fn remaining(&self, now_ms: i64) -> u32 {
