@@ -1,0 +1,6 @@
+/target/
+cfvirtual-review-*.md
+*.db
+*.db-shm
+*.db-wal
+*.db.bak*
