@@ -40,7 +40,7 @@ package() {
     for doc in README.md LICENSE CHANGELOG.md DECISIONS.md SPEC.md; do
         install -Dm644 "$doc" "$pkgdir/usr/share/doc/$pkgname/$doc"
     done
-    for doc in SELF_HOSTING.md DEMO.md PROTOCOL.md; do
+    for doc in SELF_HOSTING.md DEMO.md PROTOCOL.md WINDOWS.md; do
         install -Dm644 "docs/$doc" "$pkgdir/usr/share/doc/$pkgname/docs/$doc"
     done
     install -Dm644 assets/contest.svg "$pkgdir/usr/share/doc/$pkgname/assets/contest.svg"

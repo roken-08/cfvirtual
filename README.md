@@ -37,7 +37,7 @@ Names follow `cfvirtual-<tag>-<target>.<archive-extension>`. Verify the checksum
 
 ### Cargo / source
 
-Use Rust **1.99.1**, pinned in `rust-toolchain.toml`, and a C compiler/linker: SQLite is bundled and compiled from source. Linux needs the usual build tools; macOS needs Xcode Command Line Tools; Windows needs the MSVC C++ build tools. HTTPS uses rustls, so OpenSSL development headers are unnecessary. The locked Linux clipboard backend uses pure-Rust `x11rb`, without a `libxcb` build-time link dependency.
+Use Rust **1.99.1**, pinned in `rust-toolchain.toml`, and a C compiler/linker: SQLite is bundled and compiled from source. Linux needs the usual build tools; macOS needs Xcode Command Line Tools; Windows needs the MSVC C++ build tools. HTTPS uses rustls, so OpenSSL development headers are unnecessary. The locked Linux clipboard backend uses pure-Rust `x11rb`, without a `libxcb` build-time link dependency. See [Windows Terminal instructions](docs/WINDOWS.md) for PowerShell installation and PATH setup.
 
 ```sh
 cargo +1.99.1 install --locked --git '<repository-url>' cfvirtual

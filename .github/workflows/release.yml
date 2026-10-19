@@ -82,7 +82,7 @@ jobs:
           files = [(Path('target') / target / 'release' / binary, binary)]
           docs = ('README.md', 'LICENSE', 'CHANGELOG.md', 'DECISIONS.md', 'SPEC.md',
                   'docs/SELF_HOSTING.md', 'docs/DEMO.md', 'docs/PROTOCOL.md',
-                   'assets/contest.svg', 'packaging/PKGBUILD')
+                   'assets/contest.svg', 'packaging/PKGBUILD', 'docs/WINDOWS.md')
           files += [(Path(name), name) for name in docs]
           dist = Path('dist')
           dist.mkdir(exist_ok=True)
