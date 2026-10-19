@@ -40,9 +40,8 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &App, now_ms: i64) {
         Screen::Setup => setup(frame, app, parts[1]),
         Screen::Lobby => lobby(frame, app, parts[1]),
         Screen::Contest | Screen::Results => contest(frame, app, parts[1]),
-        Screen::History | Screen::Review => frame.render_widget(Paragraph::new(
-            "Use cfvirtual history or cfvirtual review for read-only saved records.\nAdd --json for structured output."
-        ).block(block("Saved practice", app.theme, true)).wrap(Wrap { trim: false }), parts[1]),
+        Screen::History => history(frame, app, parts[1]),
+        Screen::Review => review(frame, app, parts[1]),
         Screen::Help => {}
     }
     footer(frame, app, parts[2]);
@@ -59,6 +58,64 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &App, now_ms: i64) {
     if app.screen == Screen::Help {
         help(frame, app);
     }
+}
+
+fn history(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let rows = app.history_entries.iter().map(|entry| {
+        Row::new(vec![
+            Cell::from(entry.id.clone()),
+            Cell::from(entry.mode.clone()),
+            Cell::from(format!("{}/{}", entry.solved, entry.problem_count)),
+            Cell::from(entry.penalty.to_string()),
+            Cell::from(entry.host_handle.clone()),
+        ])
+    });
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(24),
+            Constraint::Length(12),
+            Constraint::Length(9),
+            Constraint::Length(10),
+            Constraint::Min(12),
+        ],
+    )
+    .header(Row::new(["Contest", "Mode", "Solved", "Penalty", "Handle"]))
+    .block(block("History (j/k select, q back)", app.theme, true))
+    .row_highlight_style(app.theme.selected());
+    let mut state = table_state(app.list_selection, area.height);
+    frame.render_stateful_widget(table, area, &mut state);
+}
+
+fn review(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let rows = app.review_entries.iter().map(|entry| {
+        Row::new(vec![
+            Cell::from(entry.problem_key.clone()),
+            Cell::from(entry.name.clone()),
+            Cell::from(entry.interval_days.to_string()),
+            Cell::from(entry.due_at.to_string()),
+            Cell::from(entry.url.clone()),
+        ])
+    });
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(12),
+            Constraint::Min(20),
+            Constraint::Length(8),
+            Constraint::Length(12),
+            Constraint::Min(20),
+        ],
+    )
+    .header(Row::new(["Problem", "Name", "Days", "Due (UTC)", "Link"]))
+    .block(block(
+        "Review queue (j/k select, o open, y copy, q back)",
+        app.theme,
+        true,
+    ))
+    .row_highlight_style(app.theme.selected());
+    let mut state = table_state(app.list_selection, area.height);
+    frame.render_stateful_widget(table, area, &mut state);
 }
 
 fn header(frame: &mut Frame<'_>, app: &App, area: Rect, now_ms: i64) {

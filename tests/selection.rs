@@ -198,7 +198,7 @@ fn invalid_sources_and_missing_ratings_never_reenter_through_fallback() {
     }
     let mut unrated = problem(7, 1200, "dp");
     unrated.rating = None;
-    pool.extend([unrated, problem(0, 1200, "dp")]);
+    pool.extend([unrated, problem(100001, 1200, "dp"), problem(0, 1200, "dp")]);
     let mut invalid_index = problem(8, 1200, "dp");
     invalid_index.key.index = "../A".to_owned();
     pool.push(invalid_index);

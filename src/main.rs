@@ -156,6 +156,14 @@ async fn run(cli: Cli) -> Result<()> {
             export,
             handle,
         } => {
+            if !cli.json
+                && export.is_none()
+                && std::io::stdin().is_terminal()
+                && std::io::stdout().is_terminal()
+            {
+                tui::run_history(paths.db(), limit as usize, &theme, cli.ascii).await?;
+                return Ok(());
+            }
             let store = Store::open(&paths.db())?;
             if let Some(id) = export {
                 let (contest, standings) = store
@@ -205,6 +213,15 @@ async fn run(cli: Cli) -> Result<()> {
             solve,
             skip,
         } => {
+            if !cli.json
+                && solve.is_none()
+                && skip.is_none()
+                && std::io::stdin().is_terminal()
+                && std::io::stdout().is_terminal()
+            {
+                tui::run_review(paths.db(), due, limit as usize, &theme, cli.ascii).await?;
+                return Ok(());
+            }
             let mut store = Store::open(&paths.db())?;
             let now = chrono::Utc::now().timestamp();
             if let Some(key) = solve.as_ref().or(skip.as_ref()) {

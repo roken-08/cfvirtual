@@ -2,6 +2,7 @@ use super::theme::Theme;
 use crate::{
     domain::{Contest, Standing},
     server::proto::{Phase, Snapshot},
+    store::{HistoryEntry, ReviewEntry},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
@@ -71,6 +72,9 @@ pub(super) struct App {
     pub complete: bool,
     pub saved: bool,
     pub saving: bool,
+    pub history_entries: Vec<HistoryEntry>,
+    pub review_entries: Vec<ReviewEntry>,
+    pub list_selection: usize,
 }
 
 impl App {
@@ -103,6 +107,9 @@ impl App {
             complete: false,
             saved: false,
             saving: false,
+            history_entries: Vec::new(),
+            review_entries: Vec::new(),
+            list_selection: 0,
         }
     }
 
@@ -162,6 +169,12 @@ impl App {
     }
 
     pub fn selected_url(&self) -> Option<String> {
+        if self.base_screen() == Screen::Review {
+            return self
+                .review_entries
+                .get(self.list_selection)
+                .map(|entry| entry.url.clone());
+        }
         if self.base_screen() == Screen::Lobby {
             let room = self.room.as_ref()?;
             return Some(format!(
@@ -232,6 +245,11 @@ impl App {
                 self.underneath = self.screen;
                 self.screen = Screen::Help;
                 self.help_scroll = 0;
+            }
+            KeyCode::Char('q') | KeyCode::Esc
+                if matches!(self.screen, Screen::History | Screen::Review) =>
+            {
+                return Action::Quit
             }
             KeyCode::Char('q') | KeyCode::Esc => {
                 if self.screen == Screen::Results {
@@ -305,6 +323,21 @@ impl App {
     }
 
     fn move_selection(&mut self, down: bool) {
+        if matches!(self.screen, Screen::History | Screen::Review) {
+            let count = if self.screen == Screen::History {
+                self.history_entries.len()
+            } else {
+                self.review_entries.len()
+            };
+            self.list_selection = if down {
+                self.list_selection
+                    .saturating_add(1)
+                    .min(count.saturating_sub(1))
+            } else {
+                self.list_selection.saturating_sub(1)
+            };
+            return;
+        }
         if self.screen == Screen::Lobby {
             self.detail_scroll = if down {
                 self.detail_scroll.saturating_add(1)

@@ -45,6 +45,7 @@ pub fn select(
         let problem_tags: BTreeSet<_> = problem.tags.iter().map(|tag| normalize(tag)).collect();
         if solved.contains(&problem.key)
             || problem.key.contest_id == 0
+            || problem.key.contest_id >= 100_000
             || problem.key.index.is_empty()
             || !problem
                 .key

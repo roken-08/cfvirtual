@@ -37,8 +37,11 @@ impl From<String> for RoomUrls {
 
 use crate::{cf::CfClient, client::net::Client, domain::Contest};
 use anyhow::Result;
-use futures_util::FutureExt;
+use chrono::Utc;
+use crossterm::event::{Event, EventStream};
+use futures_util::{FutureExt, StreamExt};
 use std::{io::IsTerminal, panic::AssertUnwindSafe, path::PathBuf};
+use tokio::time::{interval, Duration, MissedTickBehavior};
 
 /// Run a prepared solo contest after a three-second countdown. Redirected demo
 /// invocations automatically use the offline logical-clock runner instead.
@@ -94,4 +97,82 @@ pub async fn run_room(
     .await;
     drop(terminal);
     result.unwrap_or_else(|_| Err(anyhow::anyhow!("The terminal app stopped unexpectedly")))
+}
+
+/// Browse saved contests using the same keyboard-driven terminal state machine
+/// as the contest view. Redirected callers should use `history`'s text/JSON mode.
+pub async fn run_history(db_path: PathBuf, limit: usize, theme: &str, ascii: bool) -> Result<()> {
+    let entries = tokio::task::spawn_blocking(move || {
+        crate::store::Store::open(&db_path).and_then(|store| store.history(limit))
+    })
+    .await??;
+    run_browser(Screen::History, entries, Vec::new(), theme, ascii).await
+}
+
+/// Browse the persisted spaced-repetition queue. `due` applies the same UTC
+/// due-time filter as the read command.
+pub async fn run_review(
+    db_path: PathBuf,
+    due: bool,
+    limit: usize,
+    theme: &str,
+    ascii: bool,
+) -> Result<()> {
+    let now = Utc::now().timestamp();
+    let entries = tokio::task::spawn_blocking(move || {
+        crate::store::Store::open(&db_path).and_then(|store| store.review(due, limit, now))
+    })
+    .await??;
+    run_browser(Screen::Review, Vec::new(), entries, theme, ascii).await
+}
+
+async fn run_browser(
+    screen: Screen,
+    history: Vec<crate::store::HistoryEntry>,
+    reviews: Vec<crate::store::ReviewEntry>,
+    theme: &str,
+    ascii: bool,
+) -> Result<()> {
+    let mut terminal = terminal::Session::enter()?;
+    let result = AssertUnwindSafe(async {
+        let mut app = app::App::new("local".into(), theme, ascii);
+        app.screen = screen;
+        app.history_entries = history;
+        app.review_entries = reviews;
+        let mut input = EventStream::new();
+        let mut frame = interval(Duration::from_millis(100));
+        frame.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        loop {
+            terminal.terminal.draw(|frame| render::draw(frame, &app, Utc::now().timestamp_millis()))?;
+            tokio::select! {
+                signal = tokio::signal::ctrl_c() => { signal?; return Ok(()); }
+                event = input.next() => {
+                    let Some(event) = event else { anyhow::bail!("Terminal input closed"); };
+                    if let Event::Key(key) = event? {
+                        let action = app.key(key);
+                        match action {
+                            app::Action::Quit => return Ok(()),
+                            app::Action::Open | app::Action::Copy => {
+                                if let Some(url) = app.selected_url() {
+                                    // Browser/clipboard failures are converted to a visible status.
+                                    let mut jobs = io::Jobs::new();
+                                    io::link(&mut jobs, url, action == app::Action::Copy);
+                                    if let Some(event) = jobs.join_next().await {
+                                        match event {
+                                            Ok(event) => io::apply(&mut app, event),
+                                            Err(error) => app.status = format!("Background link operation failed: {error}"),
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ = frame.tick() => {}
+            }
+        }
+    }).catch_unwind().await;
+    drop(terminal);
+    result.unwrap_or_else(|_| Err(anyhow::anyhow!("The terminal browser stopped unexpectedly")))
 }
