@@ -497,7 +497,7 @@ async fn host_room(
     if let Some(url) = public_url.as_ref() {
         config::validate_server(url).map_err(|e| usage(e.to_string()))?;
     }
-    let (client, display_url, _server_task) = if let Some(url) = remote {
+    let (client, connect_url, display_url, _server_task) = if let Some(url) = remote {
         config::validate_server(&url).map_err(|e| usage(e.to_string()))?;
         let mut client = Client::connect(&url).await?;
         eprintln!("Preparing the room on the headless server...");
@@ -508,7 +508,8 @@ async fn host_room(
             })
             .await?;
         welcome(&mut client).await?;
-        (client, url, None)
+        let display = public_url.unwrap_or_else(|| url.clone());
+        (client, url, display, None)
     } else {
         let listener = bind(SocketAddr::new(listen, port)).await?;
         let address = listener.local_addr()?;
@@ -534,7 +535,7 @@ async fn host_room(
             },
         )
         .await?;
-        (client, display_url, Some(task))
+        (client, connect_url, display_url, Some(task))
     };
     let code = client
         .snapshot()
@@ -546,7 +547,10 @@ async fn host_room(
     );
     tui::run_room(
         client,
-        display_url,
+        tui::RoomUrls {
+            connect: connect_url,
+            advertise: display_url,
+        },
         options.handle,
         paths.db(),
         theme,
@@ -572,6 +576,13 @@ async fn welcome(client: &mut Client) -> Result<String> {
                         .unwrap_or(state.host_handle));
                 }
                 Some(ServerMessage::Error { code, message }) => {
+                    if code == "CF_UNAVAILABLE" {
+                        return Err(CfError::Protocol {
+                            endpoint: "room",
+                            message: "the room server cannot reach Codeforces; retry later",
+                        }
+                        .into());
+                    }
                     if ["INVALID_HANDLE", "INVALID_OPTIONS"].contains(&code.as_str()) {
                         return Err(usage(format!("{code}: {message}")));
                     }

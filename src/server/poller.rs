@@ -80,7 +80,7 @@ async fn poller(state: State, room: Arc<Mutex<Room>>) {
                 }
                 let (contest, standings) = {
                     let mut guard = room.lock().await;
-                    guard.finish();
+                    guard.sync_participants();
                     (guard.contest.clone(), guard.scores())
                 };
                 let path = state.inner.data_dir.join("cfvirtual.db");
@@ -92,6 +92,9 @@ async fn poller(state: State, room: Arc<Mutex<Room>>) {
                 if !matches!(saved, Ok(Ok(()))) {
                     tracing::warn!("Could not persist room final standings");
                 }
+                // Publish final results only after the authoritative record's
+                // save attempt. Embedded hosts can then safely reuse that record.
+                room.lock().await.finish();
                 break;
             }
             Phase::Ended => break,

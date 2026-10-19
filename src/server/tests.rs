@@ -124,7 +124,23 @@ async fn stalled_api_cannot_hold_finalization_open_forever() {
     settle().await;
     tokio::time::advance(std::time::Duration::from_secs(180)).await;
     settle().await;
-    assert_eq!(room.lock().await.phase, Phase::Ended);
+    // The API drain uses virtual time; the durable SQLite write uses a real
+    // blocking thread. Give that write bounded wall time before final delivery.
+    tokio::time::resume();
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        while room.lock().await.phase != Phase::Ended {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("finalized after bounded polling and durable save");
+    assert!(
+        crate::store::Store::open(&directory.path().join("cfvirtual.db"))
+            .expect("saved database")
+            .load_contest(&room.lock().await.contest.id)
+            .expect("load contest")
+            .is_some()
+    );
 }
 
 #[tokio::test]

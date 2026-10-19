@@ -290,14 +290,14 @@ fn message(app: &mut App, message: ServerMessage, jobs: &mut io::Jobs, path: &st
 pub(super) async fn run(
     terminal: &mut Tty,
     client: Client,
-    server_url: String,
+    server_url: super::RoomUrls,
     handle: String,
     db_path: PathBuf,
     theme: &str,
     ascii: bool,
 ) -> Result<()> {
     let mut app = App::new(handle, theme, ascii);
-    app.server_url = Some(public_url(&server_url));
+    app.server_url = Some(public_url(&server_url.advertise));
     app.status = "Connected. Room clock and scores are authoritative; r reconnects.".into();
     let mut jobs = io::Jobs::new();
     if let Some(state) = client.snapshot().cloned() {
@@ -307,7 +307,7 @@ pub(super) async fn run(
     }
     let (commands, rx) = mpsc::channel(8);
     let (tx, mut network) = mpsc::channel(32);
-    let _worker = Worker(tokio::spawn(transport(client, server_url, rx, tx)));
+    let _worker = Worker(tokio::spawn(transport(client, server_url.connect, rx, tx)));
     let mut input = EventStream::new();
     let mut frame = tokio::time::interval(Duration::from_millis(100));
     frame.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);

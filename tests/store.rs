@@ -14,6 +14,31 @@ use tempfile::tempdir;
 const DAY: i64 = 86_400;
 
 #[test]
+fn embedded_host_projection_does_not_duplicate_history_or_statistics() -> Result<()> {
+    let directory = tempdir()?;
+    let path = directory.path().join("room.db");
+    let (full, scores) = fixture();
+    let mut projection = full.clone();
+    projection.id = format!(
+        "{}:participant:{}",
+        full.id,
+        full.host_handle.to_ascii_lowercase()
+    );
+    projection.mode = "room-participant".into();
+    let mut store = Store::open(&path)?;
+    store.save_contest(&projection, &scores)?;
+    store.save_contest(&full, &scores)?;
+    assert_eq!(store.history(10)?.len(), 1);
+    assert_eq!(store.history(10)?[0].id, full.id);
+    assert_eq!(store.stats()?.total_contests, 1);
+    assert!(
+        store.load_contest(&projection.id)?.is_some(),
+        "participant export inputs remain available"
+    );
+    Ok(())
+}
+
+#[test]
 fn public_history_medians_and_weights_survive_restart_without_raw_history() -> Result<()> {
     use cfvirtual::domain::{weakness, Submission};
     let directory = tempdir()?;

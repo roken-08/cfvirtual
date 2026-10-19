@@ -134,7 +134,12 @@ impl Store {
              FROM contests c LEFT JOIN participants p
                ON p.contest_id=c.id AND p.handle=c.host_handle
                   AND p.is_bot=0 AND p.is_spectator=0
-             ORDER BY c.started_at DESC, c.id ASC LIMIT ?1",
+              WHERE NOT EXISTS (
+                SELECT 1 FROM contests source
+                WHERE c.id=source.id || ':participant:' || lower(source.host_handle)
+                  AND c.host_handle=source.host_handle AND source.mode='room'
+              )
+              ORDER BY c.started_at DESC, c.id ASC LIMIT ?1",
         )?;
         let mut rows = statement.query([sql_limit(limit)])?;
         let mut history = Vec::new();
@@ -162,7 +167,9 @@ impl Store {
         let mut total_penalty = 0.0;
         let mut statement = self
             .connection
-            .prepare("SELECT snapshot_json, standings_json FROM contests")?;
+            .prepare("SELECT c.snapshot_json, c.standings_json FROM contests c WHERE NOT EXISTS (
+                SELECT 1 FROM contests source WHERE c.id=source.id || ':participant:' || lower(source.host_handle)
+                AND c.host_handle=source.host_handle AND source.mode='room')")?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {
             let (contest, standings) =
@@ -171,6 +178,9 @@ impl Store {
                 .participants
                 .iter()
                 .any(|p| p.handle == contest.host_handle && p.is_spectator);
+            if spectator {
+                continue;
+            }
             let host = standings
                 .iter()
                 .find(|s| s.name == contest.host_handle && !s.is_bot && !spectator);

@@ -192,9 +192,33 @@ async fn join(
                     "Invalid contest options or room limits exceeded.",
                 ));
             }
-            let contest = tokio::time::timeout(Duration::from_secs(180), state.inner.backend.prepare(&options)).await
-                .map_err(|_| RoomError::new("CF_UNAVAILABLE", "Contest preparation timed out; retry later."))?
-                .map_err(|_| RoomError::new("PREPARE_FAILED", "Could not prepare the room; check the handle, options and Codeforces availability."))?;
+            let contest = tokio::time::timeout(
+                Duration::from_secs(180),
+                state.inner.backend.prepare(&options),
+            )
+            .await
+            .map_err(|_| {
+                RoomError::new(
+                    "CF_UNAVAILABLE",
+                    "Contest preparation timed out; retry later.",
+                )
+            })?
+            .map_err(|error| {
+                if error
+                    .downcast_ref::<crate::cf::CfError>()
+                    .is_some_and(|e| !e.is_invalid_handle())
+                {
+                    RoomError::new(
+                        "CF_UNAVAILABLE",
+                        "Codeforces is unavailable; retry room creation later.",
+                    )
+                } else {
+                    RoomError::new(
+                        "PREPARE_FAILED",
+                        "Could not prepare the room; check the handle and contest options.",
+                    )
+                }
+            })?;
             let created = state.create_room(contest, password).await?;
             let room = state.lookup(&created.code).await?;
             room.lock().await.attach(0, connection);
@@ -244,9 +268,33 @@ async fn join(
                 guard.check_join(&handle, false)?;
             }
             // Never keep a room/network lock while validating with the public API.
-            let user = tokio::time::timeout(Duration::from_secs(90), state.inner.backend.validate_handle(&handle)).await
-                .map_err(|_| RoomError::new("CF_UNAVAILABLE", "Handle validation timed out; retry later."))?
-                .map_err(|_| RoomError::new("INVALID_HANDLE", "Could not validate this Codeforces handle; check spelling and API availability."))?;
+            let user = tokio::time::timeout(
+                Duration::from_secs(90),
+                state.inner.backend.validate_handle(&handle),
+            )
+            .await
+            .map_err(|_| {
+                RoomError::new(
+                    "CF_UNAVAILABLE",
+                    "Handle validation timed out; retry later.",
+                )
+            })?
+            .map_err(|error| {
+                if error
+                    .downcast_ref::<crate::cf::CfError>()
+                    .is_some_and(|e| !e.is_invalid_handle())
+                {
+                    RoomError::new(
+                        "CF_UNAVAILABLE",
+                        "Codeforces is unavailable; retry joining later.",
+                    )
+                } else {
+                    RoomError::new(
+                        "INVALID_HANDLE",
+                        "Could not validate this Codeforces handle; check its spelling.",
+                    )
+                }
+            })?;
             if !room::valid_handle(&user.handle) {
                 return Err(RoomError::new(
                     "INVALID_HANDLE",

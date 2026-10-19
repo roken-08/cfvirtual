@@ -14,7 +14,7 @@ pub const MAX_PLAYERS: usize = 32;
 pub const MAX_SPECTATORS: usize = 8;
 pub const MAX_BOTS: usize = 16;
 const MAX_ROOMS: usize = 128;
-const CODE_ALPHABET: &[u8] = b"23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const CODE_ALPHABET: &[u8] = b"23456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
@@ -164,7 +164,7 @@ impl State {
 
 pub(crate) fn valid_handle(handle: &str) -> bool {
     !handle.is_empty()
-        && handle.len() <= 64
+        && handle.len() <= 24
         && handle
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))

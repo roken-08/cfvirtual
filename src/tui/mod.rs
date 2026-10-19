@@ -21,6 +21,20 @@ mod theme;
 pub use app::Screen;
 pub use demo::{demo_contest, run_demo_headless};
 
+/// Separate a host's local transport from the LAN/tunnel address shown to guests.
+pub struct RoomUrls {
+    pub connect: String,
+    pub advertise: String,
+}
+impl From<String> for RoomUrls {
+    fn from(url: String) -> Self {
+        Self {
+            connect: url.clone(),
+            advertise: url,
+        }
+    }
+}
+
 use crate::{cf::CfClient, client::net::Client, domain::Contest};
 use anyhow::Result;
 use futures_util::FutureExt;
@@ -60,7 +74,7 @@ pub async fn run_solo(
 /// to the caller; reconnect credentials remain in the transport's memory.
 pub async fn run_room(
     client: Client,
-    server_url: String,
+    server_url: impl Into<RoomUrls>,
     handle: String,
     db_path: PathBuf,
     theme: &str,
@@ -70,7 +84,7 @@ pub async fn run_room(
     let result = AssertUnwindSafe(room::run(
         &mut terminal.terminal,
         client,
-        server_url,
+        server_url.into(),
         handle,
         db_path,
         theme,
