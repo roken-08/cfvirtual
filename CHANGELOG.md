@@ -7,6 +7,7 @@ this file does not imply that a tag, binary release, or AUR package exists.
 
 ### Added
 
+- Bare `cfvirtual` launches the offline demo with seed `42` as a zero-setup first run.
 - Read-only Codeforces client, process-wide request pacing, retry handling,
   and a disk-cached problemset.
 - Seeded weakness-weighted selection, ICPC scoring, and fictional bot schedules.

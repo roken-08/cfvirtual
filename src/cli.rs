@@ -18,7 +18,7 @@ pub struct Cli {
     #[arg(long, global = true, value_parser = ["default", "colorblind"])]
     pub theme: Option<String>,
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Debug, Subcommand)]

@@ -50,6 +50,14 @@ cargo build --locked --release
 cargo run --locked -- demo --seed 42
 ```
 
+To install the binary as `cfvirtual` in a user-local PATH directory:
+
+```sh
+cargo install --locked --path . --root "$HOME/.local"
+```
+
+If `cfvirtual` is not found afterward, add `"$HOME/.local/bin"` to your shell's `PATH`.
+
 ### Arch Linux / AUR
 
 [`packaging/PKGBUILD`](packaging/PKGBUILD) is a **source-package template**, not a claim that an AUR package has been published. Set `CFVIRTUAL_REPOSITORY_URL`, `CFVIRTUAL_SOURCE_URL`, and `CFVIRTUAL_SOURCE_SHA256` to the real repository, versioned source archive, and SHA-256 digest before running `makepkg -si` from `packaging/`. The archive must extract to `cfvirtual-0.1.0/`; update the version and directory together for a release. Replace the placeholders with fixed metadata and generate `.SRCINFO` before submitting to AUR.
@@ -57,6 +65,13 @@ cargo run --locked -- demo --seed 42
 ## Quick start
 
 Try the offline demo first:
+
+```sh
+cfvirtual
+```
+
+The bare command is a convenience alias for the offline demo with seed `42`.
+The explicit form is equivalent and allows a different seed:
 
 ```sh
 cfvirtual demo --seed 42

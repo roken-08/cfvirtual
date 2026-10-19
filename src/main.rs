@@ -72,7 +72,9 @@ async fn run(cli: Cli) -> Result<()> {
     let paths = Paths::discover()?;
     let mut config = Config::load(&paths.config)?;
     let theme = cli.theme.as_deref().unwrap_or(&config.theme).to_string();
-    match cli.command {
+    // The zero-argument command is a safe, network-free first run. Explicit
+    // subcommands retain the full CLI documented in the specification.
+    match cli.command.unwrap_or(Command::Demo { seed: 42 }) {
         Command::Start(args) => {
             if !cli.json {
                 require_terminal()?;

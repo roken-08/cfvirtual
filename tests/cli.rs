@@ -41,6 +41,7 @@ fn all_commands_have_help_and_usage_failures_exit_two() -> Result<()> {
     ] {
         assert!(run(directory.path(), &args)?.status.success());
     }
+    assert!(run(directory.path(), &["--help"])?.status.success());
     for args in [
         vec!["start", "--problems", "0"],
         vec!["config", "set", "unknown", "value"],
@@ -115,6 +116,21 @@ fn offline_demo_cli_history_export_config_and_json_survive_restart() -> Result<(
             .code(),
         Some(2)
     );
+    Ok(())
+}
+
+#[test]
+fn bare_command_is_the_offline_demo_alias() -> Result<()> {
+    let directory = tempfile::tempdir()?;
+    let output = run(directory.path(), &[])?;
+    anyhow::ensure!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text = String::from_utf8(output.stdout)?;
+    assert!(text.contains("Offline demo complete"));
+    assert!(text.contains("demo-000000000000002a"));
     Ok(())
 }
 
