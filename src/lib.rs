@@ -1,5 +1,9 @@
 pub mod cf;
 pub mod cli;
+pub mod client;
 pub mod config;
 pub mod domain;
+pub mod server;
 pub mod service;
+pub mod store;
+pub mod tui;
