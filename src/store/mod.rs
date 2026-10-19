@@ -8,7 +8,7 @@ pub mod db;
 
 pub use db::Store;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,6 +43,17 @@ pub struct Stats {
     /// Consecutive UTC dates with a saved contest, ending today or yesterday.
     pub current_streak: u32,
     pub per_tag: BTreeMap<String, TagStats>,
+    /// Most recently fetched public-history analysis, distinct from local results.
+    pub history_profile: Option<HistoryProfile>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistoryProfile {
+    pub handle: String,
+    pub rating: u32,
+    pub updated_at: i64,
+    pub tags: BTreeMap<String, crate::domain::weakness::TagStats>,
+    pub weights: BTreeMap<String, f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]

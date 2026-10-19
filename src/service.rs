@@ -45,6 +45,7 @@ pub async fn prepare(
     if mode == "room" {
         profile?;
     }
+    let mut history_available = true;
     let history = match api.history(&options.handle).await {
         Ok(history) => history,
         Err(error) => {
@@ -52,6 +53,7 @@ pub async fn prepare(
                 return Err(error.into());
             }
             eprintln!("Codeforces history unavailable; using uniform offline weights: {error}");
+            history_available = false;
             Vec::new()
         }
     };
@@ -59,6 +61,20 @@ pub async fn prepare(
         .problemset(&data_dir.join("problemset.json"), options.refresh)
         .await?;
     let weaknesses = weakness::analyze(&history, chrono::Utc::now().timestamp());
+    if history_available {
+        if let Err(error) =
+            crate::store::Store::open(&data_dir.join("cfvirtual.db")).and_then(|store| {
+                store.save_history_profile(
+                    &options.handle,
+                    rating,
+                    &weaknesses,
+                    chrono::Utc::now().timestamp(),
+                )
+            })
+        {
+            eprintln!("Could not save aggregate weakness statistics: {error}");
+        }
+    }
     let selected = selection::select(
         &problems,
         &weaknesses.solved,

@@ -1,4 +1,4 @@
-use super::{HistoryEntry, ReviewEntry, Stats};
+use super::{HistoryEntry, HistoryProfile, ReviewEntry, Stats};
 use crate::domain::{Contest, Problem, Standing};
 use anyhow::{bail, Context, Result};
 use chrono::{NaiveDate, Utc};
@@ -107,6 +107,25 @@ impl Store {
             .transpose()
     }
 
+    /// Store aggregate public-history statistics, not submission histories or tokens.
+    pub fn save_history_profile(
+        &self,
+        handle: &str,
+        rating: u32,
+        profile: &crate::domain::weakness::WeaknessProfile,
+        now: i64,
+    ) -> Result<()> {
+        let summary = HistoryProfile {
+            handle: handle.into(),
+            rating,
+            updated_at: now,
+            tags: profile.tags.clone(),
+            weights: profile.weights.clone(),
+        };
+        self.connection.execute("INSERT INTO meta(key,value) VALUES ('history_profile',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [serde_json::to_string(&summary)?])?;
+        Ok(())
+    }
+
     /// Newest contests first, with host scores (not the leaderboard winner).
     pub fn history(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         let mut statement = self.connection.prepare(
@@ -185,6 +204,17 @@ impl Store {
             tag.solve_rate = fraction(tag.solved, tag.problems);
         }
         stats.current_streak = streak(&dates, Utc::now().date_naive());
+        let profile: Option<String> = self
+            .connection
+            .query_row(
+                "SELECT value FROM meta WHERE key='history_profile'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        stats.history_profile = profile
+            .map(|text| serde_json::from_str(&text))
+            .transpose()?;
         Ok(stats)
     }
 

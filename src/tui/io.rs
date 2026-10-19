@@ -6,6 +6,7 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use std::{
+    io::Write,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -54,7 +55,13 @@ pub(super) fn export(jobs: &mut Jobs, app: &App, path: PathBuf) {
                 "cfvirtual-review-{}.md",
                 Utc::now().format("%Y-%m-%d-%H%M")
             ));
-            std::fs::write(&filename, review::markdown(&contest, &standings, &handle))?;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&filename)
+                .context("An export may already exist for this minute; move it before retrying")?;
+            file.write_all(review::markdown(&contest, &standings, &handle).as_bytes())?;
+            file.sync_all()?;
             Ok(filename)
         })())
     });
@@ -115,6 +122,15 @@ fn open_quietly(url: &str) -> Result<()> {
     return open::that(url).map_err(Into::into);
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     {
+        if let Ok(paths) = crate::config::Paths::discover() {
+            if let Ok(config) = crate::config::Config::load(&paths.config) {
+                if !config.open_command.is_empty() {
+                    // A single executable/path, not shell text. The URL always
+                    // remains a separate argument, even when it has metacharacters.
+                    command = Command::new(config.open_command);
+                }
+            }
+        }
         let mut child = command
             .arg(url)
             .stdin(Stdio::null())

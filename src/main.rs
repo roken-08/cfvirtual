@@ -245,6 +245,25 @@ async fn run(cli: Cli) -> Result<()> {
                         entry.solve_rate * 100.0
                     );
                 }
+                if let Some(profile) = stats.history_profile {
+                    println!(
+                        "\nPublic-history weakness profile: {} (rating {}, fetched {} UTC)",
+                        profile.handle,
+                        profile.rating,
+                        date(profile.updated_at)
+                    );
+                    for (tag, entry) in profile.tags {
+                        println!(
+                            "{tag:24} weakness {:.3} | solve rate {:.1}% | median solved rating {}",
+                            entry.weakness,
+                            entry.solve_rate * 100.0,
+                            entry
+                                .median_solved_rating
+                                .map(|r| r.to_string())
+                                .unwrap_or_else(|| "--".into())
+                        );
+                    }
+                }
             }
         }
         Command::Room {
