@@ -48,14 +48,21 @@ they are not claims that acceptance checks have passed on every platform.
   shared difficulty baseline, not a fetched rating for every participant.
 - Bot solve probability is logistic in rating difference. Solve times use a
   log-normal distribution with `sigma = 0.45` and median based on
-  `max(2, 25 - rating_difference / 40)` minutes, clamped into the contest window.
-  Rejections are aggregate counts revealed at AC, not invented timestamped events.
+  `max(5, 15 - rating_difference / 40)` minutes, clamped into the contest window.
+  This lets strong bots make early
+  5–10 minute solves while weaker bots progress later; bots are synthetic
+  scheduled opponents, not an AI that reads or submits solutions. Rejections are
+  aggregate counts revealed at AC, not invented timestamped events.
 - Bot names are fictional adjective/noun/number combinations, unique within the
   generated set and always marked as bots. No API lookup or worldwide uniqueness
   guarantee is made; a coincidental real handle match is possible.
 
 ## M3 — Terminal and demo
 
+- Normal solo and room contests use a 60-second preparation countdown after the
+  public handle is validated, up to 10,000 history submissions are fetched, weak
+  tags are analyzed, and the problem set is selected. The offline demo keeps its
+  accelerated three-second countdown so it remains a quick smoke test.
 - The solo pause key opens an overlay; the authoritative clock keeps running.
   This avoids claiming that API submissions or elapsed time can be paused.
 - Blind metadata is a UI/protocol presentation choice, not an anti-cheat boundary.

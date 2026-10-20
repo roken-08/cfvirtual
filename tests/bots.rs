@@ -66,7 +66,7 @@ fn schedules_are_chronological_unique_and_inside_duration() {
                 bot.solves.len()
             );
             for event in bot.solves {
-                assert!((duration.min(120)..=duration).contains(&event.accepted_at_sec));
+                assert!((duration.min(300)..=duration).contains(&event.accepted_at_sec));
                 assert!(event.rejected_attempts <= 3);
             }
         }
@@ -96,6 +96,19 @@ fn logistic_probability_has_correct_direction_and_lognormal_has_spread() {
         .count();
     let fraction = rejected as f64 / total as f64;
     assert!((0.20..0.30).contains(&fraction));
+}
+
+#[test]
+fn stronger_bots_can_create_tight_five_to_ten_minute_opening_race() {
+    let bots = generate(256, 1200, &problems(800), 7200, 2026);
+    assert!(bots
+        .iter()
+        .flat_map(|bot| bot.solves.iter())
+        .any(|event| (300..=600).contains(&event.accepted_at_sec)));
+    assert!(bots
+        .iter()
+        .flat_map(|bot| bot.solves.iter())
+        .any(|event| event.accepted_at_sec >= 1_200));
 }
 
 #[test]

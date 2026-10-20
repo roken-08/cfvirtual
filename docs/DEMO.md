@@ -23,6 +23,10 @@ close that screen to exit. The seed makes the simulated run reproducible with th
 same application version. No real Codeforces submission is made or required.
 This is a product demonstration, not a live integration test.
 
+The demo intentionally uses a shortened preparation countdown and compressed bot
+event times. Normal solo and room contests use a one-minute preparation window
+and progressively scheduled synthetic opponents.
+
 The demo saves a local snapshot in demo mode and can appear in local history and
 statistics. Repeating the same seed replaces that fixture's deterministic contest
 ID rather than creating another independent practice record.

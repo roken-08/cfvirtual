@@ -3,6 +3,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+/// Normal contests give the player a real preparation window before the
+/// authoritative start. The offline demo intentionally uses its accelerated
+/// logical clock instead.
+pub const PRE_CONTEST_WAIT_SEC: u64 = 60;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContestOptions {
     pub handle: String,
@@ -57,10 +62,32 @@ pub async fn prepare(
             Vec::new()
         }
     };
+    let weaknesses = weakness::analyze(&history, chrono::Utc::now().timestamp());
+    if history_available {
+        let mut weak_tags: Vec<_> = weaknesses
+            .tags
+            .iter()
+            .map(|(tag, stats)| (tag.clone(), stats.weakness))
+            .collect();
+        weak_tags.sort_by(|left, right| right.1.total_cmp(&left.1));
+        let mut weak_tags: Vec<_> = weak_tags.into_iter().map(|(tag, _)| tag).collect();
+        weak_tags.truncate(3);
+        eprintln!(
+            "Fetched {} public submissions for {}; weak tags: {}",
+            history.len(),
+            options.handle,
+            if weak_tags.is_empty() {
+                "none observed".into()
+            } else {
+                weak_tags.join(", ")
+            }
+        );
+    } else {
+        eprintln!("No usable public history was fetched; using uniform tag weights.");
+    }
     let problems = api
         .problemset(&data_dir.join("problemset.json"), options.refresh)
         .await?;
-    let weaknesses = weakness::analyze(&history, chrono::Utc::now().timestamp());
     if history_available {
         if let Err(error) =
             crate::store::Store::open(&data_dir.join("cfvirtual.db")).and_then(|store| {
@@ -122,9 +149,9 @@ pub async fn run_headless(
     db: &Path,
 ) -> Result<(Contest, Vec<Standing>)> {
     use std::{collections::BTreeMap, time::Duration};
-    eprintln!("Contest starts in 3 seconds. Submit in your browser; Ctrl-C ends early.");
+    eprintln!("Contest starts in 60 seconds. Submit in your browser; Ctrl-C ends early.");
     tokio::select! {
-        _ = tokio::time::sleep(Duration::from_secs(3)) => {},
+        _ = tokio::time::sleep(Duration::from_secs(PRE_CONTEST_WAIT_SEC)) => {},
         result = tokio::signal::ctrl_c() => { result?; anyhow::bail!("contest cancelled before start"); }
     }
     contest.started_at = chrono::Utc::now().timestamp();

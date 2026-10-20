@@ -26,6 +26,11 @@ pub(crate) async fn drive(state: State, room: Arc<Mutex<Room>>) {
         if guard.phase == Phase::Ended {
             break;
         }
+        if guard.phase == Phase::Countdown
+            && chrono::Utc::now().timestamp() >= guard.contest.started_at
+        {
+            guard.activate();
+        }
         if guard.phase == Phase::Running
             && chrono::Utc::now().timestamp() >= guard.contest.deadline()
         {
@@ -49,7 +54,7 @@ async fn poller(state: State, room: Arc<Mutex<Room>>) {
     loop {
         let phase = room.lock().await.phase;
         match phase {
-            Phase::Lobby => {
+            Phase::Lobby | Phase::Countdown => {
                 wake.notified().await;
             }
             Phase::Running => {

@@ -122,6 +122,7 @@ pub type OwnProblemStatus = BTreeMap<String, BTreeMap<char, ProblemStatus>>;
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     Lobby,
+    Countdown,
     Running,
     Finishing,
     Ended,

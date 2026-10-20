@@ -1,6 +1,6 @@
 //! Pure, seeded synthetic opponents. Solve times are log-normal with the
-//! specified difficulty-dependent median (in minutes), sigma 0.45, and a
-//! two-minute floor, shortened to the duration for sub-two-minute demos.
+//! difficulty-dependent median (in minutes), sigma 0.45, and a five-minute
+//! floor for normal contests, shortened for accelerated demos.
 //! Rejections are aggregate counts attached to an AC event, not timed events.
 
 use super::{Bot, BotSolve, ContestProblem};
@@ -16,6 +16,7 @@ const NOUNS: [&str; 16] = [
     "comet", "kite", "otter", "badger", "willow", "nebula", "pebble", "lantern", "meadow",
     "quartz", "raven", "thistle", "tulip", "acorn", "moth", "fern",
 ];
+const NORMAL_MIN_SOLVE_SEC: u32 = 5 * 60;
 
 pub fn generate(
     count: usize,
@@ -49,12 +50,18 @@ pub fn generate(
             if !rng.gen_bool(probability) {
                 continue;
             }
-            let center_minutes = (25.0 - d / 40.0).max(2.0);
+            // Keep strong synthetic opponents competitive without instant,
+            // implausible solves: their median is roughly 5–10 minutes, while
+            // weaker bots naturally land later in the contest.
+            let center_minutes = (15.0 - d / 40.0).max(5.0);
             let normal =
                 (-2.0 * (1.0 - rng.gen::<f64>()).ln()).sqrt() * (TAU * rng.gen::<f64>()).cos();
             let sampled_seconds = 60.0 * center_minutes * (0.45 * normal).exp();
             let accepted_at_sec = sampled_seconds
-                .clamp(f64::from(duration_sec.min(120)), f64::from(duration_sec))
+                .clamp(
+                    f64::from(duration_sec.min(NORMAL_MIN_SOLVE_SEC)),
+                    f64::from(duration_sec),
+                )
                 .round() as u32;
             let rejected_attempts = if rng.gen_bool(0.25) {
                 rng.gen_range(1..=3)

@@ -72,6 +72,24 @@ async fn settle() {
     }
 }
 
+#[tokio::test]
+async fn normal_room_start_enters_a_real_preparation_countdown() {
+    let directory = tempfile::tempdir().expect("fixture directory");
+    let state = State::with_backend_and_prestart_wait(
+        Arc::new(CountingBackend::default()),
+        directory.path().into(),
+        crate::service::PRE_CONTEST_WAIT_SEC,
+    );
+    let created = state.create_room(contest(), None).await.expect("room");
+    let room = state.lookup(&created.code).await.expect("lookup");
+    let before = chrono::Utc::now().timestamp();
+    room.lock().await.start(0).expect("host start");
+    let guard = room.lock().await;
+    assert_eq!(guard.phase, Phase::Countdown);
+    assert!(guard.contest.started_at >= before + 59);
+    assert!(guard.contest.started_at <= before + 61);
+}
+
 #[tokio::test(start_paused = true)]
 async fn polls_every_twenty_seconds_and_sends_five_second_full_snapshots() {
     let directory = tempfile::tempdir().expect("fixture directory");

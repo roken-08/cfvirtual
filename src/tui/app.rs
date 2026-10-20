@@ -157,6 +157,20 @@ impl App {
         let Some(contest) = &self.contest else {
             return 0;
         };
+        if self
+            .room
+            .as_ref()
+            .is_some_and(|room| room.phase == Phase::Countdown)
+        {
+            let start = self
+                .room
+                .as_ref()
+                .map_or(contest.started_at, |room| room.started_at);
+            let remaining = start
+                .saturating_mul(1000)
+                .saturating_sub(now_ms.saturating_add(self.offset_ms));
+            return (remaining.saturating_add(999) / 1000).clamp(0, 60) as u32;
+        }
         let deadline = self
             .room
             .as_ref()
@@ -305,11 +319,19 @@ impl App {
             }
             KeyCode::Char('r') => return Action::Retry,
             KeyCode::Enter if self.screen == Screen::Lobby => {
-                if self.is_host() && self.connected {
+                if self
+                    .room
+                    .as_ref()
+                    .is_some_and(|room| room.phase == Phase::Countdown)
+                {
+                    self.status = "Preparation is running; the server will start the contest when the minute is over.".into();
+                } else if self.is_host() && self.connected {
                     return Action::Start;
+                } else {
+                    self.status =
+                        "Waiting for the host to start (guests and spectators are read-only)."
+                            .into();
                 }
-                self.status =
-                    "Waiting for the host to start (guests and spectators are read-only).".into();
             }
             KeyCode::Enter => {
                 self.pane = Pane::Details;

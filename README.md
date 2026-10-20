@@ -84,7 +84,7 @@ cfvirtual start --handle your_handle --problems 5 --duration 120 --bots 4
 cfvirtual start --handle your_handle --tags dp,greedy --rating 1400 --refresh --reveal
 ```
 
-`--duration` is in minutes. Solo defaults are five problems, 120 minutes, and four bots. `--refresh` requests a fresh problemset cache; `--blind` hides ratings/tags and `--reveal` allows revealing metadata. Room contests default to blind mode and zero bots.
+`--duration` is in minutes. Solo defaults are five problems, 120 minutes, and four bots. Before a normal contest starts, CFVirtual validates the public handle, fetches up to 10,000 submissions, reports weak tags, selects the contest, and holds a 60-second preparation countdown. `--refresh` requests a fresh problemset cache; `--blind` hides ratings/tags and `--reveal` allows revealing metadata. Room contests use the same one-minute preparation countdown after the host starts the lobby; they default to blind mode and zero bots. The offline demo intentionally remains accelerated.
 
 Create a room and press `Enter` in its lobby to start:
 

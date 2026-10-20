@@ -376,16 +376,34 @@ async fn resolve_handle(
     config: &mut Config,
     paths: &Paths,
 ) -> Result<String> {
-    if let Some(handle) =
-        handle.or_else(|| (!config.handle.is_empty()).then(|| config.handle.clone()))
-    {
+    if let Some(handle) = handle {
         config::validate_handle(&handle).map_err(|e| usage(e.to_string()))?;
         return Ok(handle);
+    }
+    if !config.handle.is_empty() && std::io::stdin().is_terminal() {
+        let entered = prompt(&format!(
+            "Codeforces handle [{}] (Enter to use it): ",
+            config.handle
+        ))?;
+        let handle = if entered.is_empty() {
+            config.handle.clone()
+        } else {
+            entered
+        };
+        config::validate_handle(&handle).map_err(|e| usage(e.to_string()))?;
+        if handle != config.handle {
+            config.set("handle", &handle, &paths.config)?;
+        }
+        return Ok(handle);
+    }
+    if !config.handle.is_empty() {
+        config::validate_handle(&config.handle).map_err(|e| usage(e.to_string()))?;
+        return Ok(config.handle.clone());
     }
     if !std::io::stdin().is_terminal() {
         return Err(usage("missing handle: pass --handle or config set handle"));
     }
-    let handle = prompt("Public Codeforces handle: ")?;
+    let handle = prompt("Codeforces handle: ")?;
     config::validate_handle(&handle).map_err(|e| usage(e.to_string()))?;
     eprintln!("Validating the public handle...");
     let user = CfClient::new().user_info(&handle).await?;

@@ -240,7 +240,7 @@ fn snapshot(app: &mut App, state: Snapshot, jobs: &mut io::Jobs, db_path: &std::
             io::save(jobs, app, db_path.to_path_buf());
         }
     } else {
-        app.set_screen(if phase == Phase::Lobby {
+        app.set_screen(if matches!(phase, Phase::Lobby | Phase::Countdown) {
             Screen::Lobby
         } else {
             Screen::Contest

@@ -6,6 +6,7 @@ use super::{
 use crate::{
     cf::CfClient,
     domain::{scoring, Contest, Submission},
+    service::PRE_CONTEST_WAIT_SEC,
 };
 use anyhow::{bail, Result};
 use chrono::Utc;
@@ -110,15 +111,19 @@ pub(super) async fn run(
     contest.ended_at = None;
     let mut app = App::new(contest.host_handle.clone(), theme, ascii);
     app.contest = Some(contest.clone());
+    let countdown_seconds = if is_demo { 3 } else { PRE_CONTEST_WAIT_SEC };
+    app.countdown = countdown_seconds;
     app.status = if is_demo {
         "Offline demo: synthetic submissions and BOT schedules; no network.".into()
     } else {
-        "Starting in 3 seconds. Submissions are manual in your browser.".into()
+        format!(
+            "Profile analyzed. Contest starts in {countdown_seconds} seconds; submit manually in your browser."
+        )
     };
     let mut input = EventStream::new();
     let mut frame = tokio::time::interval(Duration::from_millis(100));
     frame.set_missed_tick_behavior(MissedTickBehavior::Skip);
-    let countdown = Instant::now() + Duration::from_secs(3);
+    let countdown = Instant::now() + Duration::from_secs(countdown_seconds);
     let mut next_poll = countdown;
     let mut pending = false;
     let mut finishing = false;
@@ -190,7 +195,11 @@ pub(super) async fn run(
             _ = frame.tick() => {
                 let instant = Instant::now();
                 if !started {
-                    app.countdown = countdown.saturating_duration_since(instant).as_secs().saturating_add(1).min(3);
+                    app.countdown = countdown
+                        .saturating_duration_since(instant)
+                        .as_secs()
+                        .saturating_add(1)
+                        .min(countdown_seconds);
                     if instant >= countdown {
                         contest.started_at = Utc::now().timestamp();
                         app.contest = Some(contest.clone());

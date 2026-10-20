@@ -17,8 +17,9 @@ On the host:
 cfvirtual room create --handle your_handle --listen 0.0.0.0 --port 7331 --problems 5 --duration 120
 ```
 
-The host stays in the lobby until `Enter` starts the contest. Share the displayed
-room code and a reachable LAN address. Binding `0.0.0.0` exposes port 7331 on all
+The host stays in the lobby until `Enter` starts the preparation window. The server
+then waits one minute before the contest clock begins, giving participants time to
+open the selected links. Share the displayed room code and a reachable LAN address. Binding `0.0.0.0` exposes port 7331 on all
 IPv4 interfaces; it is not an address a client should use to connect. Permit that
 TCP port in the host firewall for the intended network.
 

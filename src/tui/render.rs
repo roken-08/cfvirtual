@@ -2,7 +2,7 @@ use super::{
     app::{App, Confirm, Pane, Screen},
     theme::Theme,
 };
-use crate::domain::ProblemStatus;
+use crate::{domain::ProblemStatus, server::proto::Phase};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
@@ -131,6 +131,14 @@ fn header(frame: &mut Frame<'_>, app: &App, area: Rect, now_ms: i64) {
         });
     let timer = match app.base_screen() {
         Screen::Setup => format!("starts in {}", app.countdown),
+        Screen::Lobby
+            if app
+                .room
+                .as_ref()
+                .is_some_and(|room| room.phase == Phase::Countdown) =>
+        {
+            format!("starts in {}", clock(app.remaining(now_ms)))
+        }
         Screen::Lobby => "lobby".into(),
         Screen::Results => "FINAL RESULTS".into(),
         _ if app.complete => "saving results".into(),
@@ -232,10 +240,15 @@ fn lobby(frame: &mut Frame<'_>, app: &App, area: Rect) {
         lines.push(Line::from(format!("[+] {} BOT ({})", bot.name, bot.rating)));
     }
     lines.push(Line::from(""));
-    lines.push(Line::from(if app.is_host() {
-        "Enter: Start | y: copy join command"
+    lines.push(Line::from(if room.phase == Phase::Countdown {
+        format!(
+            "Preparation window: contest starts in {}",
+            clock(app.remaining(chrono::Utc::now().timestamp_millis()))
+        )
+    } else if app.is_host() {
+        "Enter: Start | y: copy join command".into()
     } else {
-        "Waiting for host Start | y: copy join command"
+        "Waiting for host Start | y: copy join command".into()
     }));
     lines.push(Line::from(app.selected_url().unwrap_or_default()));
     frame.render_widget(

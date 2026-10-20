@@ -1,4 +1,5 @@
 use super::{proto::*, CodeforcesBackend, RoomBackend};
+use crate::service::PRE_CONTEST_WAIT_SEC;
 use crate::{cf::CfClient, domain::*};
 use rand::{rngs::OsRng, Rng, RngCore};
 use sha2::{Digest, Sha256};
@@ -53,26 +54,37 @@ pub(crate) struct Inner {
     pub backend: Arc<dyn RoomBackend>,
     pub data_dir: PathBuf,
     pub rooms: RwLock<HashMap<String, Arc<Mutex<Room>>>>,
+    pub pre_contest_wait_sec: u64,
 }
 
 impl State {
     pub fn new(api: CfClient, data_dir: PathBuf) -> Self {
-        Self::with_backend(
+        Self::with_backend_and_prestart_wait(
             Arc::new(CodeforcesBackend {
                 api,
                 data_dir: data_dir.clone(),
             }),
             data_dir,
+            PRE_CONTEST_WAIT_SEC,
         )
     }
 
     /// Inject a trusted server-side backend; see [`RoomBackend`]'s contract.
     pub fn with_backend(backend: Arc<dyn RoomBackend>, data_dir: PathBuf) -> Self {
+        Self::with_backend_and_prestart_wait(backend, data_dir, 0)
+    }
+
+    pub fn with_backend_and_prestart_wait(
+        backend: Arc<dyn RoomBackend>,
+        data_dir: PathBuf,
+        pre_contest_wait_sec: u64,
+    ) -> Self {
         Self {
             inner: Arc::new(Inner {
                 backend,
                 data_dir,
                 rooms: RwLock::new(HashMap::new()),
+                pre_contest_wait_sec,
             }),
         }
     }
@@ -144,6 +156,7 @@ impl State {
             end_reason: None,
             submissions: HashMap::new(),
             wake: Arc::new(Notify::new()),
+            pre_contest_wait_sec: self.inner.pre_contest_wait_sec,
         }));
         rooms.insert(code.clone(), room.clone());
         drop(rooms);
@@ -257,6 +270,7 @@ pub(crate) struct Room {
     pub end_reason: Option<EndReason>,
     pub submissions: HashMap<String, BTreeMap<u64, Submission>>,
     pub wake: Arc<Notify>,
+    pub pre_contest_wait_sec: u64,
 }
 
 impl Room {
@@ -275,10 +289,10 @@ impl Room {
     }
 
     pub fn check_join(&self, handle: &str, spectator: bool) -> Result<(), RoomError> {
-        if !spectator && self.phase != Phase::Lobby {
+        if !spectator && matches!(self.phase, Phase::Running | Phase::Finishing | Phase::Ended) {
             return Err(RoomError::new(
                 "CONTEST_STARTED",
-                "Players cannot join after the lobby; reconnect with your token.",
+                "Players cannot join after the preparation window; reconnect with your token.",
             ));
         }
         let count = self
@@ -357,21 +371,44 @@ impl Room {
                 "The room is no longer in the lobby.",
             ));
         }
+        self.contest.started_at = chrono::Utc::now()
+            .timestamp()
+            .saturating_add(self.pre_contest_wait_sec as i64);
+        self.phase = if self.pre_contest_wait_sec == 0 {
+            Phase::Running
+        } else {
+            Phase::Countdown
+        };
+        self.sync_participants();
+        if self.phase == Phase::Running {
+            self.broadcast_contest_started();
+        }
+        self.broadcast_tick();
+        self.wake.notify_one();
+        Ok(())
+    }
+
+    pub fn activate(&mut self) {
+        if self.phase != Phase::Countdown {
+            return;
+        }
         self.contest.started_at = chrono::Utc::now().timestamp();
         self.phase = Phase::Running;
         self.sync_participants();
-        let problems = self.public_problems();
+        self.broadcast_contest_started();
+        self.broadcast_tick();
+        self.wake.notify_one();
+    }
+
+    fn broadcast_contest_started(&mut self) {
         self.broadcast(ServerMessage::ContestStarted {
             contest_id: self.contest.id.clone(),
             started_at: self.contest.started_at,
             duration_sec: self.contest.duration_sec,
-            problems,
+            problems: self.public_problems(),
             blind: self.contest.blind,
             server_time: chrono::Utc::now().timestamp(),
         });
-        self.broadcast_tick();
-        self.wake.notify_one();
-        Ok(())
     }
 
     pub fn end(&mut self, index: usize) -> Result<(), RoomError> {
@@ -520,7 +557,8 @@ impl Room {
             host_handle: self.contest.host_handle.clone(),
             phase: self.phase,
             started_at: self.contest.started_at,
-            deadline: (self.phase != Phase::Lobby).then(|| self.contest.deadline()),
+            deadline: matches!(self.phase, Phase::Running | Phase::Finishing | Phase::Ended)
+                .then(|| self.contest.deadline()),
             ended_at: self.contest.ended_at,
             end_reason: self.end_reason,
             server_time: chrono::Utc::now().timestamp(),

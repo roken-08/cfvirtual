@@ -27,15 +27,18 @@ strings drawn from `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (no `0`, `O`, `1`, `I`, `L`
 
 - `hello`: validate the public handle with `user.info`, then reserve a player
   slot. Handles compare case-insensitively. An existing handle needs its token,
-  even if its previous socket disconnected. Players may join only in the lobby.
+  even if its previous socket disconnected. Players may join in the lobby or
+  during the preparation countdown, but not after the contest clock starts.
 - `reconnect`: resume any phase, bypassing handle validation and the password.
   The token identifies the participant and its role. The new socket replaces
   the previous one; stale actions/disconnects cannot affect the replacement.
 - `spectate`: reserve a spectator slot in any phase. No handle or CF lookup is
   required. A generated public spectator name and private reconnect token are
   returned. Spectators cannot start/end or receive per-problem player details.
-- `start`: host-only, lobby-only. Sets the authoritative Unix-second start time
-  and starts polling. Prepared problems remain hidden in the lobby.
+- `start`: host-only, lobby-only. Enters a server-authoritative 60-second
+  `countdown` preparation phase; the server then sets the contest start time,
+  broadcasts `contest_started`, and starts polling. This gives participants time
+  to read the selected links without counting down contest time.
 - `end`: host-only, running-only. The UI must obtain confirmation **before**
   sending this action. Freezes the inclusive submission cutoff at the earlier
   of now and the original deadline, then drains final verdicts.
@@ -91,9 +94,9 @@ can estimate its clock offset with a ping round trip and compute
 ```text
 Snapshot {
   code: string, contest_id: string, host_handle: string,
-  phase: "lobby" | "running" | "finishing" | "ended",
-  started_at: i64,                 // zero in lobby
-  deadline: i64 | null,            // inclusive cutoff; null in lobby
+  phase: "lobby" | "countdown" | "running" | "finishing" | "ended",
+  started_at: i64,                 // scheduled start during countdown
+  deadline: i64 | null,             // inclusive cutoff; null before running
   ended_at: i64 | null,            // cutoff when finishing/ended
   end_reason: "timeout" | "host" | null,
   server_time: i64,
@@ -130,7 +133,8 @@ Only the recipient's own per-problem statuses are present, even at the end.
 Spectators receive `{}`. Public standings **never** contain a `problems` map.
 Snapshots contain no participant tokens, submissions, seed, or bot solve
 schedule. Bots are always marked `is_bot: true`; only elapsed bot events affect
-scores. Problem lists are empty in the lobby. In blind mode, ratings are null
+ scores. Problem lists are empty in the lobby; during countdown they contain the
+ selected problem links with blind metadata redacted. In blind mode, ratings are null
 and tags empty until `ended`, at which point the full problem metadata appears.
 The full recipient-filtered state in `welcome`, `tick` and `contest_ended` is
 sufficient to rebuild lobby, contest and results screens after reconnecting.

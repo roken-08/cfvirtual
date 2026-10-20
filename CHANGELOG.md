@@ -7,6 +7,10 @@ this file does not imply that a tag, binary release, or AUR package exists.
 
 ### Added
 
+- A mandatory one-minute normal-contest preparation window: handle validation,
+  full public-history analysis, weak-tag reporting, and contest selection happen
+  before the authoritative clock starts. Bots now use progressive minute-scale
+  schedules rather than instant solves.
 - Bare `cfvirtual` launches the offline demo with seed `42` as a zero-setup first run.
 - Read-only Codeforces client, process-wide request pacing, retry handling,
   and a disk-cached problemset.
