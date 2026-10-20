@@ -99,13 +99,13 @@ pub enum RoomCommand {
     },
 }
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Default)]
 pub struct ContestArgs {
     #[arg(long)]
     pub handle: Option<String>,
     #[arg(long, value_parser = clap::value_parser!(u32).range(1..=26))]
     pub problems: Option<u32>,
-    #[arg(long, value_parser = clap::value_parser!(u32).range(1..=1440), help = "Contest duration in minutes")]
+    #[arg(long, value_parser = clap::value_parser!(u32).range(90..=1440), help = "Contest duration in minutes (90 minimum; default 120)")]
     pub duration: Option<u32>,
     #[arg(long, value_parser = clap::value_parser!(u32).range(800..=3500))]
     pub rating: Option<u32>,
@@ -151,6 +151,12 @@ mod tests {
         use clap::CommandFactory;
         Cli::command().debug_assert();
         assert!(Cli::try_parse_from(["cfvirtual", "start", "--problems", "0"]).is_err());
+        assert!(Cli::try_parse_from(["cfvirtual", "start", "--duration", "89"]).is_err());
+        assert!(Cli::try_parse_from(["cfvirtual", "start", "--duration", "90"]).is_ok());
+        assert!(Cli::try_parse_from(["cfvirtual"])
+            .unwrap()
+            .command
+            .is_none());
         assert!(Cli::try_parse_from(["cfvirtual", "demo", "--json", "--ascii"]).is_ok());
         assert!(
             Cli::try_parse_from(["cfvirtual", "room", "create", "--reveal", "--bots", "16"])

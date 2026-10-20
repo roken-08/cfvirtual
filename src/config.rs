@@ -97,8 +97,8 @@ impl Config {
         if !(1..=26).contains(&self.default_problems) {
             bail!("default_problems must be 1..26");
         }
-        if !(1..=1440).contains(&self.default_duration) {
-            bail!("default_duration must be 1..1440 minutes");
+        if !(90..=1440).contains(&self.default_duration) {
+            bail!("default_duration must be 90..1440 minutes");
         }
         if self.default_bots > 16 {
             bail!("default_bots must be 0..16");
@@ -210,11 +210,14 @@ mod tests {
         let mut config = Config::load(&path)?;
         config.set("handle", "practice_player", &path)?;
         config.set("default_problems", "6", &path)?;
+        assert!(config.set("default_duration", "89", &path).is_err());
+        config.set("default_duration", "90", &path)?;
         let before = std::fs::read(&path)?;
         assert!(config.set("default_problems", "27", &path).is_err());
         assert_eq!(std::fs::read(&path)?, before);
         assert_eq!(Config::load(&path)?.default_problems, 6);
         assert_eq!(Config::load(&path)?.handle, "practice_player");
+        assert_eq!(Config::default().default_duration, 120);
         Ok(())
     }
     #[test]

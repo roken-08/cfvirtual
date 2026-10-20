@@ -44,12 +44,18 @@ fn all_commands_have_help_and_usage_failures_exit_two() -> Result<()> {
     assert!(run(directory.path(), &["--help"])?.status.success());
     for args in [
         vec!["start", "--problems", "0"],
+        vec!["start", "--duration", "89"],
         vec!["config", "set", "unknown", "value"],
         vec!["start", "--json"],
         vec!["start", "--json", "--handle", "bad/handle"],
     ] {
         assert_eq!(run(directory.path(), &args)?.status.code(), Some(2));
     }
+    assert!(
+        run(directory.path(), &["start", "--duration", "90", "--help"])?
+            .status
+            .success()
+    );
     Ok(())
 }
 
@@ -120,17 +126,12 @@ fn offline_demo_cli_history_export_config_and_json_survive_restart() -> Result<(
 }
 
 #[test]
-fn bare_command_is_the_offline_demo_alias() -> Result<()> {
+fn bare_command_enters_real_setup_instead_of_replaying_demo() -> Result<()> {
     let directory = tempfile::tempdir()?;
     let output = run(directory.path(), &[])?;
-    anyhow::ensure!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert_eq!(output.status.code(), Some(2));
     let text = String::from_utf8(output.stdout)?;
-    assert!(text.contains("Offline demo complete"));
-    assert!(text.contains("demo-000000000000002a"));
+    assert!(!text.contains("Offline demo complete"));
     Ok(())
 }
 

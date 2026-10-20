@@ -7,6 +7,7 @@ use std::path::Path;
 /// authoritative start. The offline demo intentionally uses its accelerated
 /// logical clock instead.
 pub const PRE_CONTEST_WAIT_SEC: u64 = 60;
+pub const MIN_REAL_CONTEST_SEC: u32 = 90 * 60;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContestOptions {
@@ -33,8 +34,8 @@ pub async fn prepare(
         "problems must be 1..26"
     );
     anyhow::ensure!(
-        (1..=86400).contains(&options.duration_sec),
-        "duration must be 1..86400 seconds"
+        (MIN_REAL_CONTEST_SEC..=86400).contains(&options.duration_sec),
+        "real contest duration must be 90..1440 minutes"
     );
     anyhow::ensure!(options.bots <= 16, "at most 16 bots are supported");
     let profile = match api.user_info(&options.handle).await {

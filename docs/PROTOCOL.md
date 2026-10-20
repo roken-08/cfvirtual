@@ -168,7 +168,9 @@ Rooms/sessions are in-memory and do not survive a server restart.
 - 32 players **including the host**, eight spectators, 16 bots per room.
   Disconnected members retain their slots for reconnect; spectators do too.
 - 128 retained rooms per server instance; restart to clear old rooms.
-- 1–26 problems, duration 1–86400 seconds. Passwords at most 1024 UTF-8 bytes.
+- 1–26 problems, real contest duration 5400–86400 seconds (90 minutes to 24
+  hours). Passwords are at most 1024 UTF-8 bytes. The 90-second duration exists
+  only in the explicit offline demo fixture and is never used for a real room.
 - Incoming/outgoing frames/messages at most 64 KiB. Outbound queues hold 32
   messages per socket. A full queue, oversized output or five-second write
   timeout disconnects that socket; it can reconnect and recover a full state.

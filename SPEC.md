@@ -173,6 +173,7 @@ cfvirtual demo [--seed S]
 Rules:
 
 - Defaults: `--problems 5`, `--duration 120`, `--bots 4` in solo, `--bots 0` in rooms unless set.
+- Real contest durations are in minutes and must be between 90 minutes and 24 hours; the default is 120 minutes. Bare `cfvirtual` is equivalent to the normal `start` setup flow, while `cfvirtual demo` is the separate accelerated offline fixture.
 - Host profile: if `--handle` is absent, use `config.handle`; if that is absent, prompt once and save.
 - Room contest parameters come from the host. Joining players cannot change the problem set.
 - `room create` runs the server in the same process and opens the lobby TUI.

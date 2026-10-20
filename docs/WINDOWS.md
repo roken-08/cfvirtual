@@ -24,8 +24,9 @@ not found in an already-open Windows Terminal window, restart that window or run
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
 ```
 
-Bare `cfvirtual` starts the offline demo. Use `cfvirtual --help` to see the
-complete command list.
+Bare `cfvirtual` starts the normal contest flow, prompting for your Codeforces
+handle if one is not configured. Use `cfvirtual demo` for the network-free
+90-second smoke test, and `cfvirtual --help` for the complete command list.
 
 ## Prebuilt binary
 

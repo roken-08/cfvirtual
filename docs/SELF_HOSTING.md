@@ -31,7 +31,8 @@ cfvirtual join --server 'ws://<lan-host>:7331' --code '<room-code>' --handle you
 
 Add `--spectate` to observe. Players join only before start; spectators may join
 afterward. The host chooses the problem set and can add `--bots N`. Room defaults
-are five problems, 120 minutes, zero bots, and hidden rating/tag metadata.
+are five problems, 120 minutes, zero bots, and hidden rating/tag metadata. Real
+room durations must be at least 90 minutes.
 
 An optional `--password '<room-password>'` on room creation adds a soft gate.
 Joiners are prompted when a password is required. Avoid putting a real password

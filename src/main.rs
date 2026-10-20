@@ -72,9 +72,12 @@ async fn run(cli: Cli) -> Result<()> {
     let paths = Paths::discover()?;
     let mut config = Config::load(&paths.config)?;
     let theme = cli.theme.as_deref().unwrap_or(&config.theme).to_string();
-    // The zero-argument command is a safe, network-free first run. Explicit
-    // subcommands retain the full CLI documented in the specification.
-    match cli.command.unwrap_or(Command::Demo { seed: 42 }) {
+    // Bare `cfvirtual` starts the normal contest flow. The explicit `demo`
+    // subcommand remains the isolated, network-free smoke test.
+    match cli
+        .command
+        .unwrap_or_else(|| Command::Start(ContestArgs::default()))
+    {
         Command::Start(args) => {
             if !cli.json {
                 require_terminal()?;

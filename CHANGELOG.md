@@ -11,7 +11,9 @@ this file does not imply that a tag, binary release, or AUR package exists.
   full public-history analysis, weak-tag reporting, and contest selection happen
   before the authoritative clock starts. Bots now use progressive minute-scale
   schedules rather than instant solves.
-- Bare `cfvirtual` launches the offline demo with seed `42` as a zero-setup first run.
+- Bare `cfvirtual` now launches the real contest setup flow instead of replaying
+  the fixed demo on every terminal. The explicit `cfvirtual demo` command remains
+  the 90-second offline smoke test.
 - Read-only Codeforces client, process-wide request pacing, retry handling,
   and a disk-cached problemset.
 - Seeded weakness-weighted selection, ICPC scoring, and fictional bot schedules.

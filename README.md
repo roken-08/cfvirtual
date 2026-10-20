@@ -64,14 +64,18 @@ If `cfvirtual` is not found afterward, add `"$HOME/.local/bin"` to your shell's 
 
 ## Quick start
 
-Try the offline demo first:
+Start a real contest with the configured or prompted Codeforces handle:
 
 ```sh
 cfvirtual
 ```
 
-The bare command is a convenience alias for the offline demo with seed `42`.
-The explicit form is equivalent and allows a different seed:
+Bare `cfvirtual` runs the normal contest flow. It validates your handle, fetches
+your public submission history, reports weak tags, chooses the problem set, and
+waits one minute before starting the contest clock. Real contests are 120 minutes
+by default and accept `--duration` values from 90 to 1440 minutes.
+
+For the network-free smoke test, use the explicit demo command:
 
 ```sh
 cfvirtual demo --seed 42
@@ -84,7 +88,7 @@ cfvirtual start --handle your_handle --problems 5 --duration 120 --bots 4
 cfvirtual start --handle your_handle --tags dp,greedy --rating 1400 --refresh --reveal
 ```
 
-`--duration` is in minutes. Solo defaults are five problems, 120 minutes, and four bots. Before a normal contest starts, CFVirtual validates the public handle, fetches up to 10,000 submissions, reports weak tags, selects the contest, and holds a 60-second preparation countdown. `--refresh` requests a fresh problemset cache; `--blind` hides ratings/tags and `--reveal` allows revealing metadata. Room contests use the same one-minute preparation countdown after the host starts the lobby; they default to blind mode and zero bots. The offline demo intentionally remains accelerated.
+`--duration` is in minutes. Solo defaults are five problems, 120 minutes, and four bots. `--refresh` requests a fresh problemset cache; `--blind` hides ratings/tags and `--reveal` allows revealing metadata. Room contests use the same one-minute preparation countdown after the host starts the lobby; they default to blind mode and zero bots. The offline demo intentionally remains accelerated at 90 simulated seconds.
 
 Create a room and press `Enter` in its lobby to start:
 
